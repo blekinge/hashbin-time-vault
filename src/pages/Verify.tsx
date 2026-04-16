@@ -14,16 +14,20 @@ export default function VerifyPage() {
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<any[] | null>(null);
 
-  const search = async (hash: string) => {
+  const search = useCallback(async (hash: string) => {
+    if (!hash) return;
     setSearching(true);
     try {
-      const { data, error } = await supabase
-        .from("timestamps_public" as any)
-        .select("*")
-        .eq("hash", hash)
-        .order("created_at", { ascending: true });
-
-      if (error) throw error;
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api/verify?hash=${encodeURIComponent(hash)}`,
+        {
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Search failed");
       setResults(data || []);
       if (!data?.length) toast.info("No timestamps found for this hash");
     } catch (err: any) {
@@ -31,7 +35,7 @@ export default function VerifyPage() {
     } finally {
       setSearching(false);
     }
-  };
+  }, []);
 
   const onFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];

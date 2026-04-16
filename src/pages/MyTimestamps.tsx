@@ -12,21 +12,27 @@ export default function MyTimestampsPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) {
         navigate("/auth");
         return;
       }
       setUser(data.user);
-      supabase
-        .from("timestamps")
-        .select("*")
-        .eq("user_id", data.user.id)
-        .order("created_at", { ascending: false })
-        .then(({ data: rows }) => {
-          setRecords(rows || []);
+      fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api/my-timestamps`,
+        {
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token ?? ""}`,
+          },
+        }
+      )
+        .then((r) => r.json())
+        .then((rows) => {
+          setRecords(Array.isArray(rows) ? rows : []);
           setLoading(false);
-        });
+        })
+        .catch(() => setLoading(false));
     });
   }, [navigate]);
 

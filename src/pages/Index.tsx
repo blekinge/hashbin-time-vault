@@ -47,11 +47,21 @@ export default function StampPage() {
       };
       if (includeFileName) body.file_name = file.name;
 
-      const { data, error } = await supabase.functions.invoke("sign-timestamp", {
-        body,
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api/stamp`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify(body),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create timestamp");
 
-      if (error) throw error;
       setResult(data);
       toast.success("Timestamp created!");
     } catch (err: any) {
