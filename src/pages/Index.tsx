@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { hashFile, formatFileSize } from "@/lib/hash";
 import Layout from "@/components/Layout";
@@ -8,44 +8,97 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 
+interface FileEntry {
+  file: File;
+  hash: string | null;
+  hashing: boolean;
+  submitting: boolean;
+  result: any | null;
+  error: string | null;
+}
+
 export default function StampPage() {
-  const [file, setFile] = useState<File | null>(null);
-  const [hash, setHash] = useState<string | null>(null);
-  const [hashing, setHashing] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [entries, setEntries] = useState<FileEntry[]>([]);
   const [includeFileName, setIncludeFileName] = useState(false);
-  const [result, setResult] = useState<any>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const dropRef = useRef<HTMLLabelElement>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
   }, []);
 
-  const onDrop = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setFile(f);
-    setResult(null);
-    setHashing(true);
-    try {
-      const h = await hashFile(f);
-      setHash(h);
-    } catch {
-      toast.error("Failed to hash file");
-    } finally {
-      setHashing(false);
+  const addFiles = useCallback(async (files: File[]) => {
+    const newEntries: FileEntry[] = files.map((f) => ({
+      file: f,
+      hash: null,
+      hashing: true,
+      submitting: false,
+      result: null,
+      error: null,
+    }));
+
+    setEntries((prev) => [...prev, ...newEntries]);
+
+    // Hash each file
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      try {
+        const h = await hashFile(file);
+        setEntries((prev) =>
+          prev.map((e) =>
+            e.file === file ? { ...e, hash: h, hashing: false } : e
+          )
+        );
+      } catch {
+        setEntries((prev) =>
+          prev.map((e) =>
+            e.file === file
+              ? { ...e, hashing: false, error: "Failed to hash" }
+              : e
+          )
+        );
+      }
     }
   }, []);
 
-  const submit = async () => {
-    if (!hash || !file) return;
-    setSubmitting(true);
+  const onFileInput = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files || []);
+      if (files.length) addFiles(files);
+      e.target.value = "";
+    },
+    [addFiles]
+  );
+
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(true);
+  }, []);
+
+  const onDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+  }, []);
+
+  const onDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragging(false);
+      const files = Array.from(e.dataTransfer.files);
+      if (files.length) addFiles(files);
+    },
+    [addFiles]
+  );
+
+  const stampOne = async (entry: FileEntry) => {
+    if (!entry.hash) return;
+    setEntries((prev) =>
+      prev.map((e) => (e.file === entry.file ? { ...e, submitting: true } : e))
+    );
     try {
-      const body: any = {
-        hash,
-        file_size: file.size,
-      };
-      if (includeFileName) body.file_name = file.name;
+      const body: any = { hash: entry.hash, file_size: entry.file.size };
+      if (includeFileName) body.file_name = entry.file.name;
 
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api/stamp`,
@@ -60,75 +113,157 @@ export default function StampPage() {
         }
       );
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to create timestamp");
+      if (!res.ok) throw new Error(data.error || "Failed");
 
-      setResult(data);
-      toast.success("Timestamp created!");
+      setEntries((prev) =>
+        prev.map((e) =>
+          e.file === entry.file
+            ? { ...e, submitting: false, result: data }
+            : e
+        )
+      );
     } catch (err: any) {
-      toast.error(err.message || "Failed to create timestamp");
-    } finally {
-      setSubmitting(false);
+      setEntries((prev) =>
+        prev.map((e) =>
+          e.file === entry.file
+            ? { ...e, submitting: false, error: err.message }
+            : e
+        )
+      );
     }
   };
+
+  const stampAll = async () => {
+    const pending = entries.filter((e) => e.hash && !e.result && !e.error);
+    for (const entry of pending) {
+      await stampOne(entry);
+    }
+    const successCount = entries.filter((e) => e.result).length + pending.length;
+    toast.success(`Timestamped ${successCount} file${successCount !== 1 ? "s" : ""}`);
+  };
+
+  const pendingEntries = entries.filter((e) => e.hash && !e.result && !e.error);
+  const allDone = entries.length > 0 && entries.every((e) => e.result || e.error);
 
   return (
     <Layout>
       <div className="space-y-8">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Timestamp a file</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Timestamp files</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Hash your file locally, then store a signed timestamp proving it existed at this moment.
+            Hash your files locally, then store signed timestamps proving they existed at this moment.
           </p>
         </div>
 
-        {!result ? (
-          <div className="space-y-6">
-            <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border px-6 py-12 transition-colors hover:border-muted-foreground/50">
-              <span className="text-sm text-muted-foreground">
-                {file ? file.name : "Click to select a file"}
-              </span>
-              <input type="file" className="hidden" onChange={onDrop} />
-            </label>
+        {/* Drop zone */}
+        <label
+          ref={dropRef}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+          className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-12 transition-colors ${
+            dragging
+              ? "border-primary bg-primary/5"
+              : "border-border hover:border-muted-foreground/50"
+          }`}
+        >
+          <span className="text-sm text-muted-foreground">
+            {dragging
+              ? "Drop files here"
+              : "Drag & drop files here, or click to select"}
+          </span>
+          <input
+            type="file"
+            className="hidden"
+            multiple
+            onChange={onFileInput}
+          />
+        </label>
 
-            {hash && file && (
-              <div className="space-y-4 rounded-lg border border-border p-4">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">SHA-256 Hash</p>
-                  <p className="mt-1 break-all font-mono text-sm">{hash}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">File Size</p>
-                  <p className="mt-1 text-sm">{formatFileSize(file.size)}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Switch
-                    id="include-name"
-                    checked={includeFileName}
-                    onCheckedChange={setIncludeFileName}
-                  />
-                  <Label htmlFor="include-name" className="text-sm">
-                    Include file name in timestamp record
-                  </Label>
-                </div>
-                <Button onClick={submit} disabled={submitting || hashing} className="w-full">
-                  {submitting ? "Creating timestamp…" : "Create Timestamp"}
-                </Button>
+        {entries.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="include-name"
+                  checked={includeFileName}
+                  onCheckedChange={setIncludeFileName}
+                />
+                <Label htmlFor="include-name" className="text-sm">
+                  Include file names
+                </Label>
               </div>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-4 rounded-lg border border-border p-4">
-            <h2 className="font-medium">Timestamp created ✓</h2>
-            <div className="space-y-2 text-sm">
-              <p><span className="text-muted-foreground">Hash:</span> <span className="break-all font-mono">{result.hash}</span></p>
-              <p><span className="text-muted-foreground">Recorded at:</span> {new Date(result.created_at).toLocaleString()}</p>
-              <p><span className="text-muted-foreground">File size:</span> {formatFileSize(result.file_size)}</p>
-              {result.file_name && <p><span className="text-muted-foreground">File name:</span> {result.file_name}</p>}
-              <p><span className="text-muted-foreground">Signature:</span> <span className="break-all font-mono text-xs">{result.server_signature}</span></p>
+              {pendingEntries.length > 1 && (
+                <Button onClick={stampAll} size="sm">
+                  Stamp all ({pendingEntries.length})
+                </Button>
+              )}
             </div>
-            <Button variant="outline" onClick={() => { setFile(null); setHash(null); setResult(null); }}>
-              Timestamp another file
-            </Button>
+
+            <div className="space-y-3">
+              {entries.map((entry, i) => (
+                <div
+                  key={i}
+                  className="rounded-lg border border-border p-4 text-sm space-y-2"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-medium truncate">{entry.file.name}</p>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {formatFileSize(entry.file.size)}
+                    </span>
+                  </div>
+
+                  {entry.hashing && (
+                    <p className="text-xs text-muted-foreground">Hashing…</p>
+                  )}
+
+                  {entry.hash && !entry.result && !entry.error && (
+                    <>
+                      <p className="break-all font-mono text-xs text-muted-foreground">
+                        {entry.hash}
+                      </p>
+                      <Button
+                        size="sm"
+                        onClick={() => stampOne(entry)}
+                        disabled={entry.submitting}
+                        className="w-full"
+                      >
+                        {entry.submitting ? "Creating…" : "Create Timestamp"}
+                      </Button>
+                    </>
+                  )}
+
+                  {entry.result && (
+                    <div className="space-y-1 text-xs">
+                      <p className="text-green-600 dark:text-green-400 font-medium">
+                        ✓ Timestamped at{" "}
+                        {new Date(entry.result.created_at).toLocaleString()}
+                      </p>
+                      <p>
+                        <span className="text-muted-foreground">Signature:</span>{" "}
+                        <span className="break-all font-mono">
+                          {entry.result.server_signature}
+                        </span>
+                      </p>
+                    </div>
+                  )}
+
+                  {entry.error && (
+                    <p className="text-xs text-destructive">{entry.error}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {allDone && (
+              <Button
+                variant="outline"
+                onClick={() => setEntries([])}
+                className="w-full"
+              >
+                Timestamp more files
+              </Button>
+            )}
           </div>
         )}
       </div>
