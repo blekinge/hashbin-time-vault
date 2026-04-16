@@ -88,7 +88,7 @@ export default function AuthPage() {
           {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
           <button
             type="button"
-            onClick={() => { setIsLogin(!isLogin); setShowResend(false); }}
+            onClick={() => setIsLogin(!isLogin)}
             className="underline hover:text-foreground"
           >
             {isLogin ? "Sign up" : "Sign in"}
