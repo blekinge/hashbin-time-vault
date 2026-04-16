@@ -40,6 +40,12 @@ export default function VerifyPage() {
     }
   }, []);
 
+  useEffect(() => {
+    if (initialHash && /^[a-f0-9]{64}$/.test(initialHash)) {
+      search(initialHash);
+    }
+  }, [initialHash]);
+
   const onFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
