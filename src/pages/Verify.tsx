@@ -1,11 +1,19 @@
 import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { hashFile, formatFileSize } from "@/lib/hash";
+import { hashFileAll, formatFileSize } from "@/lib/hash";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+
+function detectAlgorithm(hash: string): string | null {
+  if (/^[a-f0-9]{32}$/.test(hash)) return "MD5";
+  if (/^[a-f0-9]{40}$/.test(hash)) return "SHA-1";
+  if (/^[a-f0-9]{64}$/.test(hash)) return "SHA-256";
+  if (/^[a-f0-9]{128}$/.test(hash)) return "SHA-512";
+  return null;
+}
 
 export default function VerifyPage() {
   const [searchParams] = useSearchParams();
@@ -22,7 +30,7 @@ export default function VerifyPage() {
     setSearching(true);
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api/verify?hash=${encodeURIComponent(hash)}`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api/verify?hash=${encodeURIComponent(hash.toLowerCase())}`,
         {
           headers: {
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
@@ -41,7 +49,7 @@ export default function VerifyPage() {
   }, []);
 
   useEffect(() => {
-    if (initialHash && /^[a-f0-9]{64}$/.test(initialHash)) {
+    if (initialHash && detectAlgorithm(initialHash.toLowerCase())) {
       search(initialHash);
     }
   }, [initialHash]);
@@ -53,9 +61,10 @@ export default function VerifyPage() {
     setResults(null);
     setHashing(true);
     try {
-      const h = await hashFile(f);
-      setHashInput(h);
-      await search(h);
+      const hashes = await hashFileAll(f);
+      // Search by SHA-256 (primary)
+      setHashInput(hashes.sha256);
+      await search(hashes.sha256);
     } catch {
       toast.error("Failed to hash file");
     } finally {
@@ -63,13 +72,15 @@ export default function VerifyPage() {
     }
   }, []);
 
+  const detectedAlg = hashInput ? detectAlgorithm(hashInput.toLowerCase().trim()) : null;
+
   return (
     <Layout>
       <div className="space-y-8">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Verify a timestamp</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Look up when a file was first timestamped.
+            Look up when a file was first timestamped. Supports MD5, SHA-1, SHA-256, and SHA-512.
           </p>
         </div>
 
@@ -90,19 +101,28 @@ export default function VerifyPage() {
             <input type="file" className="hidden" onChange={onFile} />
           </label>
         ) : (
-          <div className="flex gap-2">
-            <Input
-              placeholder="Enter SHA-256 hash…"
-              value={hashInput}
-              onChange={(e) => setHashInput(e.target.value)}
-              className="font-mono text-sm"
-            />
-            <Button
-              onClick={() => search(hashInput)}
-              disabled={!hashInput || searching}
-            >
-              {searching ? "Searching…" : "Search"}
-            </Button>
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Paste any hash (MD5, SHA-1, SHA-256, SHA-512)…"
+                value={hashInput}
+                onChange={(e) => setHashInput(e.target.value)}
+                className="font-mono text-sm"
+              />
+              <Button
+                onClick={() => search(hashInput.trim())}
+                disabled={!hashInput.trim() || searching || !detectedAlg}
+              >
+                {searching ? "Searching…" : "Search"}
+              </Button>
+            </div>
+            {hashInput.trim() && (
+              <p className="text-xs text-muted-foreground">
+                {detectedAlg
+                  ? `Detected: ${detectedAlg}`
+                  : "Unrecognized hash format"}
+              </p>
+            )}
           </div>
         )}
 
@@ -113,7 +133,7 @@ export default function VerifyPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  const url = `${window.location.origin}/verify?hash=${hashInput}`;
+                  const url = `${window.location.origin}/verify?hash=${hashInput.toLowerCase().trim()}`;
                   navigator.clipboard.writeText(url);
                   toast.success("Verification link copied!");
                 }}
@@ -125,10 +145,36 @@ export default function VerifyPage() {
               <p className="text-sm text-muted-foreground">No timestamps found.</p>
             ) : (
               results.map((r: any) => (
-                <div key={r.id} className="rounded-lg border border-border p-4 text-sm space-y-1">
+                <div key={r.id} className="rounded-lg border border-border p-4 text-sm space-y-2">
                   <p><span className="text-muted-foreground">Recorded at:</span> {new Date(r.created_at).toLocaleString()}</p>
                   <p><span className="text-muted-foreground">File size:</span> {formatFileSize(r.file_size)}</p>
-                  <p><span className="text-muted-foreground">Signature:</span> <span className="break-all font-mono text-xs">{r.server_signature}</span></p>
+                  <div className="space-y-1 mt-2">
+                    {r.hash && (
+                      <p className="text-xs">
+                        <span className="text-muted-foreground font-medium">SHA-256</span>{" "}
+                        <span className="break-all font-mono">{r.hash}</span>
+                      </p>
+                    )}
+                    {r.hash_sha512 && (
+                      <p className="text-xs">
+                        <span className="text-muted-foreground font-medium">SHA-512</span>{" "}
+                        <span className="break-all font-mono">{r.hash_sha512}</span>
+                      </p>
+                    )}
+                    {r.hash_sha1 && (
+                      <p className="text-xs">
+                        <span className="text-muted-foreground font-medium">SHA-1</span>{" "}
+                        <span className="break-all font-mono">{r.hash_sha1}</span>
+                      </p>
+                    )}
+                    {r.hash_md5 && (
+                      <p className="text-xs">
+                        <span className="text-muted-foreground font-medium">MD5</span>{" "}
+                        <span className="break-all font-mono">{r.hash_md5}</span>
+                      </p>
+                    )}
+                  </div>
+                  <p className="text-xs"><span className="text-muted-foreground">Signature:</span> <span className="break-all font-mono">{r.server_signature}</span></p>
                 </div>
               ))
             )}
