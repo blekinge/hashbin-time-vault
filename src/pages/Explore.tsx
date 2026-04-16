@@ -84,9 +84,24 @@ export default function ExplorePage() {
                     {formatFileSize(t.file_size ?? 0)}
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {new Date(t.created_at).toLocaleString()}
-                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(t.created_at).toLocaleString()}
+                  </span>
+                  <span className="text-xs text-muted-foreground">·</span>
+                  {[
+                    t.hash && "SHA-256",
+                    t.hash_sha512 && "SHA-512",
+                    t.hash_sha1 && "SHA-1",
+                    t.hash_md5 && "MD5",
+                  ]
+                    .filter(Boolean)
+                    .map((alg) => (
+                      <span key={alg} className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        {alg}
+                      </span>
+                    ))}
+                </div>
               </Link>
             ))}
           </div>
