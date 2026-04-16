@@ -389,9 +389,9 @@ const openApiSpec = {
     schemas: {
       StampRequest: {
         type: "object",
-        required: ["hash", "file_size"],
+        required: ["hash_sha256", "file_size"],
         properties: {
-          hash: {
+          hash_sha256: {
             type: "string",
             pattern: "^[a-f0-9]{64}$",
             description: "SHA-256 hex digest of the file (required)",
@@ -431,7 +431,7 @@ const openApiSpec = {
         type: "object",
         properties: {
           id: { type: "string", format: "uuid" },
-          hash: { type: "string", description: "SHA-256 hash" },
+          hash_sha256: { type: "string", description: "SHA-256 hash" },
           hash_md5: { type: "string", nullable: true, description: "MD5 hash" },
           hash_sha1: { type: "string", nullable: true, description: "SHA-1 hash" },
           hash_sha512: { type: "string", nullable: true, description: "SHA-512 hash" },
@@ -446,7 +446,7 @@ const openApiSpec = {
         type: "object",
         properties: {
           id: { type: "string", format: "uuid" },
-          hash: { type: "string", description: "SHA-256 hash" },
+          hash_sha256: { type: "string", description: "SHA-256 hash" },
           hash_md5: { type: "string", nullable: true, description: "MD5 hash" },
           hash_sha1: { type: "string", nullable: true, description: "SHA-1 hash" },
           hash_sha512: { type: "string", nullable: true, description: "SHA-512 hash" },
