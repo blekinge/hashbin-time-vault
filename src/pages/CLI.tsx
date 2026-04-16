@@ -130,7 +130,30 @@ export default function CLIPage() {
           </div>
         </section>
 
-        {/* GNOME integration */}
+        {/* Shell completion */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Terminal className="h-5 w-5 text-muted-foreground" />
+            <h2 className="text-lg font-semibold tracking-tight">
+              Shell completion
+            </h2>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Tab-complete subcommands, flags, algorithms, and file paths.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Bash</h3>
+              <CodeBlock code={codeBlocks.completionBash} />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Zsh</h3>
+              <CodeBlock code={codeBlocks.completionZsh} />
+            </div>
+          </div>
+        </section>
+
+
         <section className="space-y-4">
           <div className="flex items-center gap-3">
             <FolderOpen className="h-5 w-5 text-muted-foreground" />
