@@ -149,10 +149,10 @@ export default function VerifyPage() {
                   <p><span className="text-muted-foreground">Recorded at:</span> {new Date(r.created_at).toLocaleString()}</p>
                   <p><span className="text-muted-foreground">File size:</span> {formatFileSize(r.file_size)}</p>
                   <div className="space-y-1 mt-2">
-                    {r.hash && (
+                    {r.hash_sha256 && (
                       <p className="text-xs">
                         <span className="text-muted-foreground font-medium">SHA-256</span>{" "}
-                        <span className="break-all font-mono">{r.hash}</span>
+                        <span className="break-all font-mono">{r.hash_sha256}</span>
                       </p>
                     )}
                     {r.hash_sha512 && (
