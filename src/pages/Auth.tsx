@@ -101,11 +101,23 @@ export default function AuthPage() {
           </Button>
         </form>
 
+        {showResend && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleResend}
+            disabled={resending}
+          >
+            {resending ? "Sending…" : "Resend confirmation email"}
+          </Button>
+        )}
+
         <p className="text-center text-sm text-muted-foreground">
           {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
           <button
             type="button"
-            onClick={() => setIsLogin(!isLogin)}
+            onClick={() => { setIsLogin(!isLogin); setShowResend(false); }}
             className="underline hover:text-foreground"
           >
             {isLogin ? "Sign up" : "Sign in"}
