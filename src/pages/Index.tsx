@@ -107,7 +107,7 @@ export default function StampPage() {
       if (includeFileName) body.file_name = entry.file.name;
 
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api/stamp`,
+        `${API_BASE}/stamp`,
         {
           method: "POST",
           headers: {

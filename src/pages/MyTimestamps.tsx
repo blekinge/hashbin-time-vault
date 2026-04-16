@@ -19,7 +19,7 @@ export default function MyTimestampsPage() {
       }
       setUser(data.user);
       fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api/my-timestamps`,
+        `${API_BASE}/my-timestamps`,
         {
           headers: {
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,

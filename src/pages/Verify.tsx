@@ -30,7 +30,7 @@ export default function VerifyPage() {
     setSearching(true);
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api/verify?hash=${encodeURIComponent(hash.toLowerCase())}`,
+        `${API_BASE}/verify?hash=${encodeURIComponent(hash.toLowerCase())}`,
         {
           headers: {
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
