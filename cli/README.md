@@ -68,6 +68,16 @@ Requires `zenity` (installed by default on GNOME).
 3. The server returns an HMAC-signed timestamp proving the file existed at that moment
 4. You can verify any file or hash later with `hashbin verify`
 
+## Bash Completion
+
+```bash
+# Load for current session
+source hashbin-completion.bash
+
+# Install permanently
+sudo cp hashbin-completion.bash /etc/bash_completion.d/hashbin
+```
+
 ## Environment
 
 - **`NO_COLOR`** — set to disable colored output
