@@ -46,7 +46,30 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      timestamps_public: {
+        Row: {
+          created_at: string | null
+          file_size: number | null
+          hash: string | null
+          id: string | null
+          server_signature: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          file_size?: number | null
+          hash?: string | null
+          id?: string | null
+          server_signature?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          file_size?: number | null
+          hash?: string | null
+          id?: string | null
+          server_signature?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
