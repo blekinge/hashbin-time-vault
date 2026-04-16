@@ -48,6 +48,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 {n.label}
               </Link>
             ))}
+            <a
+              href="https://github.com/blekinge/hashbin-time-vault"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+              title="View source on GitHub"
+            >
+              GitHub
+            </a>
             {user ? (
               <Button
                 variant="ghost"
