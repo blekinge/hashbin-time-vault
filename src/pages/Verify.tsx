@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { hashFile, formatFileSize } from "@/lib/hash";
 import Layout from "@/components/Layout";
@@ -7,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
 export default function VerifyPage() {
+  const [searchParams] = useSearchParams();
   const [mode, setMode] = useState<"file" | "hash">("file");
   const [file, setFile] = useState<File | null>(null);
   const [hashInput, setHashInput] = useState("");
