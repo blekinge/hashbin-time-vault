@@ -18,7 +18,7 @@ export default function VerifyPage() {
     setSearching(true);
     try {
       const { data, error } = await supabase
-        .from("timestamps")
+        .from("timestamps_public" as any)
         .select("*")
         .eq("hash", hash)
         .order("created_at", { ascending: true });
