@@ -12,8 +12,6 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [resending, setResending] = useState(false);
-  const [showResend, setShowResend] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,8 +31,8 @@ export default function AuthPage() {
       } else {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        toast.success("Check your email for a verification link!");
-        setShowResend(true);
+        toast.success("Account created! Signing you in…");
+        navigate("/");
       }
     } catch (err: any) {
       toast.error(err.message);
@@ -43,22 +41,6 @@ export default function AuthPage() {
     }
   };
 
-  const handleResend = async () => {
-    if (!email) {
-      toast.error("Please enter your email address first.");
-      return;
-    }
-    setResending(true);
-    try {
-      const { error } = await supabase.auth.resend({ type: "signup", email });
-      if (error) throw error;
-      toast.success("Confirmation email resent! Check your inbox.");
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setResending(false);
-    }
-  };
 
   return (
     <Layout>
@@ -101,23 +83,12 @@ export default function AuthPage() {
           </Button>
         </form>
 
-        {showResend && (
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={handleResend}
-            disabled={resending}
-          >
-            {resending ? "Sending…" : "Resend confirmation email"}
-          </Button>
-        )}
 
         <p className="text-center text-sm text-muted-foreground">
           {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
           <button
             type="button"
-            onClick={() => { setIsLogin(!isLogin); setShowResend(false); }}
+            onClick={() => setIsLogin(!isLogin)}
             className="underline hover:text-foreground"
           >
             {isLogin ? "Sign up" : "Sign in"}
