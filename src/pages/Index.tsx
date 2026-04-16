@@ -303,7 +303,8 @@ export default function StampPage() {
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            You can verify this yourself — open your browser's Network tab before stamping a file. The only data sent is a small JSON payload with hex-encoded hashes.
+            You can verify this yourself — open your browser's Network tab before stamping a file, or{" "}
+            <a href="https://github.com/blekinge/hashbin-time-vault" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">inspect the source code on GitHub</a>.
           </p>
         </div>
       </div>
