@@ -18,6 +18,19 @@ hashbin verify myfile.pdf
 
 # Verify a raw hash
 hashbin verify e3b0c44298fc1c14...`,
+  completionBash: `# Bash — load for current session
+source <(curl -sL ${REPO_RAW}/hashbin-completion.bash)
+
+# Or install permanently
+sudo curl -sL ${REPO_RAW}/hashbin-completion.bash \\
+  -o /etc/bash_completion.d/hashbin`,
+  completionZsh: `# Zsh — install completion function
+mkdir -p ~/.zsh/completions
+curl -sL ${REPO_RAW}/_hashbin -o ~/.zsh/completions/_hashbin
+
+# Add to ~/.zshrc (if not already):
+# fpath=(~/.zsh/completions $fpath)
+# autoload -Uz compinit; compinit`,
   nautilus: `# Install Nautilus right-click integration
 mkdir -p ~/.local/share/nautilus/scripts
 curl -sL ${REPO_RAW}/hashbin-nautilus-stamp.sh \\
@@ -117,7 +130,30 @@ export default function CLIPage() {
           </div>
         </section>
 
-        {/* GNOME integration */}
+        {/* Shell completion */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Terminal className="h-5 w-5 text-muted-foreground" />
+            <h2 className="text-lg font-semibold tracking-tight">
+              Shell completion
+            </h2>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Tab-complete subcommands, flags, algorithms, and file paths.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Bash</h3>
+              <CodeBlock code={codeBlocks.completionBash} />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Zsh</h3>
+              <CodeBlock code={codeBlocks.completionZsh} />
+            </div>
+          </div>
+        </section>
+
+
         <section className="space-y-4">
           <div className="flex items-center gap-3">
             <FolderOpen className="h-5 w-5 text-muted-foreground" />

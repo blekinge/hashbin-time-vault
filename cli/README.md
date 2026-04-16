@@ -68,7 +68,9 @@ Requires `zenity` (installed by default on GNOME).
 3. The server returns an HMAC-signed timestamp proving the file existed at that moment
 4. You can verify any file or hash later with `hashbin verify`
 
-## Bash Completion
+## Shell Completion
+
+### Bash
 
 ```bash
 # Load for current session
@@ -76,6 +78,18 @@ source hashbin-completion.bash
 
 # Install permanently
 sudo cp hashbin-completion.bash /etc/bash_completion.d/hashbin
+```
+
+### Zsh
+
+```bash
+# Install completion function
+mkdir -p ~/.zsh/completions
+cp _hashbin ~/.zsh/completions/_hashbin
+
+# Add to ~/.zshrc (if not already):
+fpath=(~/.zsh/completions $fpath)
+autoload -Uz compinit; compinit
 ```
 
 ## Environment

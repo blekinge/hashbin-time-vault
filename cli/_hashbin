@@ -1,0 +1,44 @@
+#compdef hashbin
+# Zsh completion for hashbin CLI
+# Install: copy to a directory in $fpath (e.g. ~/.zsh/completions/)
+#   mkdir -p ~/.zsh/completions
+#   cp _hashbin ~/.zsh/completions/_hashbin
+#   # Add to .zshrc if not already: fpath=(~/.zsh/completions $fpath); autoload -Uz compinit; compinit
+
+_hashbin() {
+    local -a commands
+    commands=(
+        'stamp:Hash files and create signed timestamps'
+        'verify:Verify a file or hash'
+        'health:Check API availability'
+    )
+
+    _arguments -C \
+        '1:command:->cmd' \
+        '*::arg:->args'
+
+    case $state in
+        cmd)
+            _describe 'command' commands
+            ;;
+        args)
+            case $words[1] in
+                stamp)
+                    _arguments \
+                        '--include-name[Include original file name in the timestamp record]' \
+                        '--token[Supabase JWT token for authenticated stamps]:token:' \
+                        '*:file:_files'
+                    ;;
+                verify)
+                    _arguments \
+                        '--algorithm[Hash algorithm]:algorithm:(auto md5 sha1 sha256 sha512)' \
+                        '1:file or hash:_files'
+                    ;;
+                health)
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_hashbin "$@"
