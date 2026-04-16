@@ -108,6 +108,19 @@ export default function VerifyPage() {
 
         {results !== null && (
           <div className="space-y-3">
+            {results.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const url = `${window.location.origin}/verify?hash=${hashInput}`;
+                  navigator.clipboard.writeText(url);
+                  toast.success("Verification link copied!");
+                }}
+              >
+                Copy shareable link
+              </Button>
+            )}
             {results.length === 0 ? (
               <p className="text-sm text-muted-foreground">No timestamps found.</p>
             ) : (
