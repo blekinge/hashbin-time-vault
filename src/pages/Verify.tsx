@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { hashFile, formatFileSize } from "@/lib/hash";
 import Layout from "@/components/Layout";
@@ -7,9 +8,11 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
 export default function VerifyPage() {
-  const [mode, setMode] = useState<"file" | "hash">("file");
+  const [searchParams] = useSearchParams();
+  const initialHash = searchParams.get("hash") || "";
+  const [mode, setMode] = useState<"file" | "hash">(initialHash ? "hash" : "file");
   const [file, setFile] = useState<File | null>(null);
-  const [hashInput, setHashInput] = useState("");
+  const [hashInput, setHashInput] = useState(initialHash);
   const [hashing, setHashing] = useState(false);
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<any[] | null>(null);
@@ -36,6 +39,12 @@ export default function VerifyPage() {
       setSearching(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (initialHash && /^[a-f0-9]{64}$/.test(initialHash)) {
+      search(initialHash);
+    }
+  }, [initialHash]);
 
   const onFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
