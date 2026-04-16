@@ -116,7 +116,7 @@ npm run dev
 
 ## License
 
-See repository for license details.
+Licensed under the [Apache License 2.0](LICENSE).
 
 ## Links
 
