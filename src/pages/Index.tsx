@@ -279,6 +279,33 @@ export default function StampPage() {
             )}
           </div>
         )}
+
+        <div className="rounded-lg border border-border bg-muted/30 p-6 space-y-4">
+          <h2 className="text-lg font-semibold tracking-tight">How it works</h2>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">1. Hash locally</p>
+              <p className="text-xs text-muted-foreground">
+                Your file is read and hashed entirely in your browser using the Web Crypto API. The file content never leaves your device.
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium">2. Send only hashes</p>
+              <p className="text-xs text-muted-foreground">
+                Only the computed checksums (MD5, SHA-1, SHA-256, SHA-512) and file size are sent to the server — never the file itself.
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium">3. Signed timestamp</p>
+              <p className="text-xs text-muted-foreground">
+                The server records the hash with a cryptographic HMAC signature and timestamp, creating tamper-proof proof of existence.
+              </p>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            You can verify this yourself — open your browser's Network tab before stamping a file. The only data sent is a small JSON payload with hex-encoded hashes.
+          </p>
+        </div>
       </div>
     </Layout>
   );
