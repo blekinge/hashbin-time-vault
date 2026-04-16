@@ -9,9 +9,10 @@ import { toast } from "sonner";
 
 export default function VerifyPage() {
   const [searchParams] = useSearchParams();
-  const [mode, setMode] = useState<"file" | "hash">("file");
+  const initialHash = searchParams.get("hash") || "";
+  const [mode, setMode] = useState<"file" | "hash">(initialHash ? "hash" : "file");
   const [file, setFile] = useState<File | null>(null);
-  const [hashInput, setHashInput] = useState("");
+  const [hashInput, setHashInput] = useState(initialHash);
   const [hashing, setHashing] = useState(false);
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<any[] | null>(null);
