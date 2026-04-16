@@ -98,7 +98,7 @@ export default function StampPage() {
     );
     try {
       const body: any = {
-        hash: entry.hashes.sha256,
+        hash_sha256: entry.hashes.sha256,
         hash_md5: entry.hashes.md5,
         hash_sha1: entry.hashes.sha1,
         hash_sha512: entry.hashes.sha512,

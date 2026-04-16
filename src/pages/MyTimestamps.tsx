@@ -54,7 +54,7 @@ export default function MyTimestampsPage() {
           <div className="space-y-3">
             {records.map((r) => (
               <div key={r.id} className="rounded-lg border border-border p-4 text-sm space-y-1">
-                <p className="break-all font-mono text-xs">{r.hash}</p>
+                <p className="break-all font-mono text-xs">{r.hash_sha256}</p>
                 <p><span className="text-muted-foreground">Recorded:</span> {new Date(r.created_at).toLocaleString()}</p>
                 <p><span className="text-muted-foreground">File size:</span> {formatFileSize(r.file_size)}</p>
                 {r.file_name && <p><span className="text-muted-foreground">File name:</span> {r.file_name}</p>}

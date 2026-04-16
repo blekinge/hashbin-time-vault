@@ -87,10 +87,10 @@ app.post("/stamp", async (c) => {
   const body = await c.req.json().catch(() => null);
   if (!body) return c.json({ error: "Invalid JSON body" }, 400);
 
-  const { hash, hash_md5, hash_sha1, hash_sha512, file_size, file_name } = body;
+  const { hash_sha256, hash_md5, hash_sha1, hash_sha512, file_size, file_name } = body;
 
   // Validate hash (SHA-256, required)
-  if (!hash || typeof hash !== "string" || !/^[a-f0-9]{64}$/.test(hash)) {
+  if (!hash_sha256 || typeof hash_sha256 !== "string" || !/^[a-f0-9]{64}$/.test(hash_sha256)) {
     return c.json({ error: "Invalid SHA-256 hash" }, 400);
   }
 
@@ -126,7 +126,7 @@ app.post("/stamp", async (c) => {
 
   let server_signature: string;
   try {
-    server_signature = await hmacSign(`${hash}:${created_at}`);
+    server_signature = await hmacSign(`${hash_sha256}:${created_at}`);
   } catch {
     return c.json({ error: "Server misconfigured" }, 500);
   }
@@ -135,7 +135,7 @@ app.post("/stamp", async (c) => {
   const { data, error } = await supabase
     .from("timestamps")
     .insert({
-      hash,
+      hash_sha256,
       hash_md5: hash_md5 || null,
       hash_sha1: hash_sha1 || null,
       hash_sha512: hash_sha512 || null,
@@ -158,14 +158,14 @@ app.post("/stamp", async (c) => {
 // ── GET /api/verify?hash=...&algorithm=... ───────────────
 
 app.get("/verify", async (c) => {
-  const hash = c.req.query("hash");
+  const hashParam = c.req.query("hash");
   const algorithm = c.req.query("algorithm") || "auto";
 
-  if (!hash || typeof hash !== "string") {
+  if (!hashParam || typeof hashParam !== "string") {
     return c.json({ error: "Missing hash parameter" }, 400);
   }
 
-  const hexHash = hash.toLowerCase();
+  const hexHash = hashParam.toLowerCase();
 
   // Determine which column to search
   let column: string;
@@ -173,7 +173,7 @@ app.get("/verify", async (c) => {
     // Auto-detect by length
     if (/^[a-f0-9]{32}$/.test(hexHash)) column = "hash_md5";
     else if (/^[a-f0-9]{40}$/.test(hexHash)) column = "hash_sha1";
-    else if (/^[a-f0-9]{64}$/.test(hexHash)) column = "hash";
+    else if (/^[a-f0-9]{64}$/.test(hexHash)) column = "hash_sha256";
     else if (/^[a-f0-9]{128}$/.test(hexHash)) column = "hash_sha512";
     else return c.json({ error: "Invalid hash format" }, 400);
   } else {
@@ -181,8 +181,8 @@ app.get("/verify", async (c) => {
       md5: "hash_md5",
       sha1: "hash_sha1",
       "sha-1": "hash_sha1",
-      sha256: "hash",
-      "sha-256": "hash",
+      sha256: "hash_sha256",
+      "sha-256": "hash_sha256",
       sha512: "hash_sha512",
       "sha-512": "hash_sha512",
     };
@@ -193,7 +193,7 @@ app.get("/verify", async (c) => {
   const supabase = serviceClient();
   const { data, error } = await supabase
     .from("timestamps")
-    .select("id, hash, hash_md5, hash_sha1, hash_sha512, created_at, file_size, server_signature")
+    .select("id, hash_sha256, hash_md5, hash_sha1, hash_sha512, created_at, file_size, server_signature")
     .eq(column, hexHash)
     .order("created_at", { ascending: true });
 
@@ -389,9 +389,9 @@ const openApiSpec = {
     schemas: {
       StampRequest: {
         type: "object",
-        required: ["hash", "file_size"],
+        required: ["hash_sha256", "file_size"],
         properties: {
-          hash: {
+          hash_sha256: {
             type: "string",
             pattern: "^[a-f0-9]{64}$",
             description: "SHA-256 hex digest of the file (required)",
@@ -431,7 +431,7 @@ const openApiSpec = {
         type: "object",
         properties: {
           id: { type: "string", format: "uuid" },
-          hash: { type: "string", description: "SHA-256 hash" },
+          hash_sha256: { type: "string", description: "SHA-256 hash" },
           hash_md5: { type: "string", nullable: true, description: "MD5 hash" },
           hash_sha1: { type: "string", nullable: true, description: "SHA-1 hash" },
           hash_sha512: { type: "string", nullable: true, description: "SHA-512 hash" },
@@ -446,7 +446,7 @@ const openApiSpec = {
         type: "object",
         properties: {
           id: { type: "string", format: "uuid" },
-          hash: { type: "string", description: "SHA-256 hash" },
+          hash_sha256: { type: "string", description: "SHA-256 hash" },
           hash_md5: { type: "string", nullable: true, description: "MD5 hash" },
           hash_sha1: { type: "string", nullable: true, description: "SHA-1 hash" },
           hash_sha512: { type: "string", nullable: true, description: "SHA-512 hash" },

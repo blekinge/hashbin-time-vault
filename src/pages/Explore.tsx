@@ -41,7 +41,7 @@ export default function ExplorePage() {
     ? timestamps.filter((t) => {
         const s = search.toLowerCase();
         return (
-          t.hash?.startsWith(s) ||
+          t.hash_sha256?.startsWith(s) ||
           t.hash_md5?.startsWith(s) ||
           t.hash_sha1?.startsWith(s) ||
           t.hash_sha512?.startsWith(s)
@@ -75,11 +75,11 @@ export default function ExplorePage() {
             {filtered.map((t) => (
               <Link
                 key={t.id}
-                to={`/verify?hash=${t.hash}`}
+                to={`/verify?hash=${t.hash_sha256}`}
                 className="block rounded-lg border border-border p-4 text-sm space-y-1 transition-colors hover:bg-muted/50"
               >
                 <div className="flex items-center justify-between gap-4">
-                  <p className="break-all font-mono text-xs truncate flex-1">{t.hash}</p>
+                  <p className="break-all font-mono text-xs truncate flex-1">{t.hash_sha256}</p>
                   <span className="shrink-0 text-xs text-muted-foreground">
                     {formatFileSize(t.file_size ?? 0)}
                   </span>
@@ -90,7 +90,7 @@ export default function ExplorePage() {
                   </span>
                   <span className="text-xs text-muted-foreground">·</span>
                   {[
-                    t.hash && "SHA-256",
+                    t.hash_sha256 && "SHA-256",
                     t.hash_sha512 && "SHA-512",
                     t.hash_sha1 && "SHA-1",
                     t.hash_md5 && "MD5",
