@@ -12,6 +12,8 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [showResend, setShowResend] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,11 +34,29 @@ export default function AuthPage() {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         toast.success("Check your email for a verification link!");
+        setShowResend(true);
       }
     } catch (err: any) {
       toast.error(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!email) {
+      toast.error("Please enter your email address first.");
+      return;
+    }
+    setResending(true);
+    try {
+      const { error } = await supabase.auth.resend({ type: "signup", email });
+      if (error) throw error;
+      toast.success("Confirmation email resent! Check your inbox.");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setResending(false);
     }
   };
 
