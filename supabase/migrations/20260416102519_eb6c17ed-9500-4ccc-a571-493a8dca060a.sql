@@ -1,0 +1,1 @@
+ALTER VIEW public.timestamps_public SET (security_invoker = on);
