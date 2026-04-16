@@ -1,33 +1,30 @@
 
 
-# Hashbin.net — Updated Plan
+# Linux CLI for hashbin.net
 
-Same as before, with two changes to what gets stored:
+Building a standalone Linux command-line tool that hashes files locally and submits timestamps to the hashbin.net API. This is a separate artifact (not part of the web app codebase) — I'll generate a self-contained Python script and package it for download.
 
-## Changes
+## What it does
 
-1. **File size**: Always sent to the server and stored in the `timestamps` table as `file_size` (bigint, not null).
+- `hashbin stamp <file>...` — hash files locally (MD5, SHA-1, SHA-256, SHA-512) and create signed timestamps via the hashbin.net API
+- `hashbin verify <file-or-hash>` — look up existing timestamps for a file or raw hash
+- `hashbin health` — check API availability
+- Supports `--include-name` flag to optionally include file names
+- Colored terminal output with human-readable results
+- GNOME integration: a `.desktop` file and a Nautilus script so users can right-click files in the file manager to stamp them
 
-2. **File name (optional)**: A checkbox/toggle on the stamp page: "Include file name in record" (off by default). If enabled, the original file name is sent and stored as `file_name` (text, nullable). The verify page will display the file name if present.
+## Deliverables
 
-## Updated Database Schema
+1. **`/mnt/documents/hashbin`** — single-file Python CLI script (no dependencies beyond Python 3.8+ standard library; uses `hashlib` and `urllib`)
+2. **`/mnt/documents/hashbin.desktop`** — GNOME `.desktop` file for integration
+3. **`/mnt/documents/hashbin-nautilus-stamp.sh`** — Nautilus right-click "Scripts" integration
+4. **`/mnt/documents/README-cli.md`** — installation and usage instructions
 
-```text
-timestamps
-├── id           uuid, primary key
-├── hash         text, indexed, not null
-├── file_size    bigint, not null
-├── file_name    text, nullable
-├── created_at   timestamptz, not null
-├── server_signature text, not null
-└── user_id      uuid, nullable (FK → auth.users)
-```
+## Technical details
 
-## UI Impact
-
-- **Stamp page**: After file is hashed, show file size (formatted) and a toggle "Include file name in timestamp record" (default off). Both values sent on submission.
-- **Verify page**: Display file size always; display file name if stored.
-- **My Timestamps page**: Show file size and file name (if present) in the list.
-
-Everything else from the previous plan (client-side SHA-256 hashing, public hash lookup, optional auth, minimal/trustworthy design, edge function signing) remains unchanged.
+- Uses `hashlib` for all hashing (MD5, SHA-1, SHA-256, SHA-512) — zero external dependencies
+- Calls `https://hashbin.net/functions/v1/api/stamp` and `/api/verify` with the anon key
+- Streams file reads in 64KB chunks for large file support
+- Exit codes: 0 success, 1 error
+- GNOME desktop file uses `zenity` for notification dialogs (available by default on GNOME)
 
