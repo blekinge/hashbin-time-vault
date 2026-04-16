@@ -131,6 +131,9 @@ export type Database = {
           file_name: string | null
           file_size: number
           hash: string
+          hash_md5: string | null
+          hash_sha1: string | null
+          hash_sha512: string | null
           id: string
           server_signature: string
           user_id: string | null
@@ -140,6 +143,9 @@ export type Database = {
           file_name?: string | null
           file_size: number
           hash: string
+          hash_md5?: string | null
+          hash_sha1?: string | null
+          hash_sha512?: string | null
           id?: string
           server_signature: string
           user_id?: string | null
@@ -149,6 +155,9 @@ export type Database = {
           file_name?: string | null
           file_size?: number
           hash?: string
+          hash_md5?: string | null
+          hash_sha1?: string | null
+          hash_sha512?: string | null
           id?: string
           server_signature?: string
           user_id?: string | null
@@ -162,6 +171,9 @@ export type Database = {
           created_at: string | null
           file_size: number | null
           hash: string | null
+          hash_md5: string | null
+          hash_sha1: string | null
+          hash_sha512: string | null
           id: string | null
           server_signature: string | null
         }
@@ -169,6 +181,9 @@ export type Database = {
           created_at?: string | null
           file_size?: number | null
           hash?: string | null
+          hash_md5?: string | null
+          hash_sha1?: string | null
+          hash_sha512?: string | null
           id?: string | null
           server_signature?: string | null
         }
@@ -176,6 +191,9 @@ export type Database = {
           created_at?: string | null
           file_size?: number | null
           hash?: string | null
+          hash_md5?: string | null
+          hash_sha1?: string | null
+          hash_sha512?: string | null
           id?: string | null
           server_signature?: string | null
         }
