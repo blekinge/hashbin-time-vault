@@ -189,4 +189,209 @@ app.get("/my-timestamps", async (c) => {
 
 app.get("/health", (c) => c.json({ status: "ok" }));
 
+// ── OpenAPI spec ────────────────────────────────────────
+
+const openApiSpec = {
+  openapi: "3.1.0",
+  info: {
+    title: "Hashbin API",
+    version: "1.0.0",
+    description:
+      "Trusted file timestamping service. Hash files client-side, store HMAC-signed timestamps server-side.",
+    contact: { url: "https://hashbin.net" },
+  },
+  servers: [{ url: "/functions/v1/api" }],
+  paths: {
+    "/stamp": {
+      post: {
+        operationId: "createTimestamp",
+        summary: "Create a signed timestamp",
+        description:
+          "Accepts a SHA-256 hash and file metadata, returns an HMAC-signed timestamp record. Rate-limited to 10 req/min per IP.",
+        security: [{ bearerAuth: [] }, {}],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/StampRequest" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Timestamp created",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Timestamp" },
+              },
+            },
+          },
+          "400": {
+            description: "Validation error",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+              },
+            },
+          },
+          "429": { description: "Rate limited" },
+        },
+      },
+    },
+    "/verify": {
+      get: {
+        operationId: "verifyHash",
+        summary: "Look up timestamps for a hash",
+        description:
+          "Returns all timestamp records matching a given SHA-256 hash, ordered by creation time.",
+        parameters: [
+          {
+            name: "hash",
+            in: "query",
+            required: true,
+            schema: {
+              type: "string",
+              pattern: "^[a-f0-9]{64}$",
+              description: "SHA-256 hex hash",
+            },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Array of matching timestamps",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "array",
+                  items: { $ref: "#/components/schemas/TimestampPublic" },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid hash",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/my-timestamps": {
+      get: {
+        operationId: "listMyTimestamps",
+        summary: "List authenticated user's timestamps",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": {
+            description: "User's timestamps",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "array",
+                  items: { $ref: "#/components/schemas/Timestamp" },
+                },
+              },
+            },
+          },
+          "401": { description: "Not authenticated" },
+        },
+      },
+    },
+    "/health": {
+      get: {
+        operationId: "healthCheck",
+        summary: "Health check",
+        responses: {
+          "200": {
+            description: "Service is healthy",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: { status: { type: "string", example: "ok" } },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "JWT",
+        description: "Supabase JWT access token",
+      },
+      apiKey: {
+        type: "apiKey",
+        in: "header",
+        name: "apikey",
+        description: "Supabase anon/publishable key",
+      },
+    },
+    schemas: {
+      StampRequest: {
+        type: "object",
+        required: ["hash", "file_size"],
+        properties: {
+          hash: {
+            type: "string",
+            pattern: "^[a-f0-9]{64}$",
+            description: "SHA-256 hex digest of the file",
+          },
+          file_size: {
+            type: "number",
+            minimum: 0,
+            description: "File size in bytes",
+          },
+          file_name: {
+            type: "string",
+            maxLength: 500,
+            nullable: true,
+            description: "Optional original file name",
+          },
+        },
+      },
+      Timestamp: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          hash: { type: "string" },
+          file_size: { type: "number" },
+          file_name: { type: "string", nullable: true },
+          created_at: { type: "string", format: "date-time" },
+          server_signature: { type: "string", description: "HMAC-SHA256 signature over hash:created_at" },
+          user_id: { type: "string", format: "uuid", nullable: true },
+        },
+      },
+      TimestampPublic: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          hash: { type: "string" },
+          file_size: { type: "number" },
+          created_at: { type: "string", format: "date-time" },
+          server_signature: { type: "string" },
+        },
+      },
+      Error: {
+        type: "object",
+        properties: {
+          error: { type: "string" },
+        },
+      },
+    },
+  },
+};
+
+app.get("/openapi.json", (c) => {
+  return c.json(openApiSpec);
+});
+
 Deno.serve(app.fetch);
