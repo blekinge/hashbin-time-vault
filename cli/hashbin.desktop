@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Hashbin
+Comment=Trusted file timestamping via hashbin.net
+Exec=hashbin stamp --include-name %F
+Icon=document-sign
+Terminal=true
+Type=Application
+Categories=Utility;Security;
+MimeType=application/octet-stream;
+Keywords=hash;timestamp;sha256;verify;

@@ -1,0 +1,261 @@
+#!/usr/bin/env python3
+"""hashbin — Linux CLI for hashbin.net trusted file timestamping.
+
+Usage:
+    hashbin stamp <file> [<file>...]  [--include-name] [--token TOKEN]
+    hashbin verify <file-or-hash>     [--algorithm ALGO]
+    hashbin health
+
+No external dependencies — Python 3.8+ standard library only.
+"""
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import sys
+import urllib.request
+import urllib.error
+
+# ── Configuration ────────────────────────────────────────────────────
+
+API_BASE = "https://hashbin.net/functions/v1/api"
+ANON_KEY = (
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
+    "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBibXh5a3NjdGd3ZXp5ZXh6cnRrIiwi"
+    "cm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMDg5MDAsImV4cCI6MjA5MTg4NDkwMH0."
+    "ZDEywFHWXBID2LEWuaWycBjP9Zl1khAVMgjkaNVC-IY"
+)
+CHUNK_SIZE = 65536  # 64 KB
+
+# ── Terminal colours ─────────────────────────────────────────────────
+
+NO_COLOR = os.environ.get("NO_COLOR") is not None or not sys.stdout.isatty()
+
+def _c(code: str, text: str) -> str:
+    return text if NO_COLOR else f"\033[{code}m{text}\033[0m"
+
+def green(t: str) -> str:  return _c("32", t)
+def yellow(t: str) -> str: return _c("33", t)
+def red(t: str) -> str:    return _c("31", t)
+def bold(t: str) -> str:   return _c("1", t)
+def dim(t: str) -> str:    return _c("2", t)
+def cyan(t: str) -> str:   return _c("36", t)
+
+# ── Helpers ──────────────────────────────────────────────────────────
+
+def fmt_size(n: int) -> str:
+    if n == 0:
+        return "0 B"
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if abs(n) < 1024:
+            return f"{n:.1f} {unit}" if unit != "B" else f"{n} {unit}"
+        n /= 1024
+    return f"{n:.1f} PB"
+
+
+def hash_file(path: str):
+    """Hash a file with MD5, SHA-1, SHA-256, SHA-512. Returns (hashes_dict, file_size)."""
+    md5 = hashlib.md5()
+    sha1 = hashlib.sha1()
+    sha256 = hashlib.sha256()
+    sha512 = hashlib.sha512()
+    size = 0
+    with open(path, "rb") as f:
+        while True:
+            chunk = f.read(CHUNK_SIZE)
+            if not chunk:
+                break
+            md5.update(chunk)
+            sha1.update(chunk)
+            sha256.update(chunk)
+            sha512.update(chunk)
+            size += len(chunk)
+    return {
+        "md5": md5.hexdigest(),
+        "sha1": sha1.hexdigest(),
+        "sha256": sha256.hexdigest(),
+        "sha512": sha512.hexdigest(),
+    }, size
+
+
+def api_request(method: str, path: str, body=None, token: str | None = None):
+    """Make an API request and return parsed JSON."""
+    url = f"{API_BASE}{path}"
+    headers = {
+        "apikey": ANON_KEY,
+        "Content-Type": "application/json",
+    }
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    data = json.dumps(body).encode() if body else None
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return json.loads(resp.read().decode())
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode()
+        try:
+            err = json.loads(err_body)
+            return {"_error": err.get("error", err_body), "_status": e.code}
+        except json.JSONDecodeError:
+            return {"_error": err_body, "_status": e.code}
+    except urllib.error.URLError as e:
+        return {"_error": str(e.reason), "_status": 0}
+
+
+def is_hex_hash(s: str) -> bool:
+    return bool(re.fullmatch(r"[a-f0-9]+", s.lower())) and len(s) in (32, 40, 64, 128)
+
+# ── Commands ─────────────────────────────────────────────────────────
+
+def cmd_stamp(args):
+    """Hash files and create signed timestamps."""
+    ok = True
+    for filepath in args.files:
+        if not os.path.isfile(filepath):
+            print(red(f"✗ Not a file: {filepath}"))
+            ok = False
+            continue
+
+        name = os.path.basename(filepath)
+        print(f"\n{bold('Hashing')} {cyan(name)} …")
+
+        hashes, size = hash_file(filepath)
+
+        print(f"  SHA-256: {dim(hashes['sha256'])}")
+        print(f"  SHA-512: {dim(hashes['sha512'][:32])}…")
+        print(f"  SHA-1:   {dim(hashes['sha1'])}")
+        print(f"  MD5:     {dim(hashes['md5'])}")
+        print(f"  Size:    {fmt_size(size)}")
+
+        payload = {
+            "hash_sha256": hashes["sha256"],
+            "hash_md5": hashes["md5"],
+            "hash_sha1": hashes["sha1"],
+            "hash_sha512": hashes["sha512"],
+            "file_size": size,
+        }
+        if args.include_name:
+            payload["file_name"] = name
+
+        print(f"  Submitting to hashbin.net …")
+        result = api_request("POST", "/stamp", body=payload, token=args.token)
+
+        if "_error" in result:
+            print(red(f"  ✗ Error: {result['_error']}"))
+            ok = False
+        else:
+            ts = result.get("created_at", "?")
+            sig = result.get("server_signature", "?")
+            print(green(f"  ✓ Timestamped at {ts}"))
+            print(f"    Signature: {dim(sig[:32])}…")
+            print(f"    ID: {dim(result.get('id', '?'))}")
+
+    return 0 if ok else 1
+
+
+def cmd_verify(args):
+    """Verify a file or hash against hashbin.net."""
+    target = args.target
+    algorithm = args.algorithm
+
+    # If target is a file, hash it
+    if os.path.isfile(target):
+        name = os.path.basename(target)
+        print(f"{bold('Hashing')} {cyan(name)} …")
+        hashes, size = hash_file(target)
+        target = hashes["sha256"]
+        algorithm = "sha256"
+        print(f"  SHA-256: {dim(target)}")
+        print(f"  Size:    {fmt_size(size)}")
+    elif not is_hex_hash(target):
+        print(red(f"✗ '{target}' is not a valid hex hash or existing file"))
+        return 1
+
+    params = f"hash={target.lower()}"
+    if algorithm and algorithm != "auto":
+        params += f"&algorithm={algorithm}"
+
+    print(f"\n{bold('Verifying')} against hashbin.net …")
+    result = api_request("GET", f"/verify?{params}")
+
+    if isinstance(result, dict) and "_error" in result:
+        print(red(f"✗ Error: {result['_error']}"))
+        return 1
+
+    if not result:
+        print(yellow("⚠ No timestamps found for this hash."))
+        return 0
+
+    print(green(f"✓ Found {len(result)} timestamp(s):\n"))
+    for i, ts in enumerate(result, 1):
+        print(f"  {bold(f'#{i}')}  {ts.get('created_at', '?')}")
+        print(f"      SHA-256:   {dim(ts.get('hash_sha256', '-'))}")
+        if ts.get("hash_sha1"):
+            print(f"      SHA-1:     {dim(ts['hash_sha1'])}")
+        if ts.get("hash_md5"):
+            print(f"      MD5:       {dim(ts['hash_md5'])}")
+        print(f"      Size:      {fmt_size(ts.get('file_size', 0))}")
+        sig = ts.get("server_signature", "")
+        print(f"      Signature: {dim(sig[:32])}…")
+        print()
+
+    return 0
+
+
+def cmd_health(_args):
+    """Check API health."""
+    result = api_request("GET", "/health")
+    if isinstance(result, dict) and result.get("status") == "ok":
+        print(green("✓ hashbin.net API is healthy"))
+        return 0
+    else:
+        err = result.get("_error", "Unknown error") if isinstance(result, dict) else str(result)
+        print(red(f"✗ API unreachable: {err}"))
+        return 1
+
+# ── Main ─────────────────────────────────────────────────────────────
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="hashbin",
+        description="Trusted file timestamping via hashbin.net",
+        epilog="https://hashbin.net · https://github.com/blekinge/hashbin-time-vault",
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    # stamp
+    p_stamp = sub.add_parser("stamp", help="Hash files and create signed timestamps")
+    p_stamp.add_argument("files", nargs="+", metavar="FILE", help="Files to timestamp")
+    p_stamp.add_argument("--include-name", action="store_true",
+                         help="Include original file name in the timestamp record")
+    p_stamp.add_argument("--token", metavar="JWT",
+                         help="Supabase JWT token for authenticated stamps")
+
+    # verify
+    p_verify = sub.add_parser("verify", help="Verify a file or hash")
+    p_verify.add_argument("target", metavar="FILE_OR_HASH",
+                          help="File path or hex hash to verify")
+    p_verify.add_argument("--algorithm", default="auto",
+                          choices=["auto", "md5", "sha1", "sha256", "sha512"],
+                          help="Hash algorithm (default: auto-detect)")
+
+    # health
+    sub.add_parser("health", help="Check API availability")
+
+    args = parser.parse_args()
+
+    if args.command == "stamp":
+        sys.exit(cmd_stamp(args))
+    elif args.command == "verify":
+        sys.exit(cmd_verify(args))
+    elif args.command == "health":
+        sys.exit(cmd_health(args))
+
+
+if __name__ == "__main__":
+    main()
