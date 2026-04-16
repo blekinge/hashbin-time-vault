@@ -1,8 +1,9 @@
 import SwaggerUI from "swagger-ui-react";
 import "swagger-ui-react/swagger-ui.css";
 import Layout from "@/components/Layout";
+import { API_BASE } from "@/lib/api";
 
-const SPEC_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api/openapi.json`;
+const SPEC_URL = `${API_BASE}/openapi.json`;
 
 const Docs = () => (
   <Layout>

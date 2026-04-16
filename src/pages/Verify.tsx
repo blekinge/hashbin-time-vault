@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { API_BASE } from "@/lib/api";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { hashFileAll, formatFileSize } from "@/lib/hash";
@@ -30,7 +31,7 @@ export default function VerifyPage() {
     setSearching(true);
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api/verify?hash=${encodeURIComponent(hash.toLowerCase())}`,
+        `${API_BASE}/verify?hash=${encodeURIComponent(hash.toLowerCase())}`,
         {
           headers: {
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,

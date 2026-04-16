@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { API_BASE } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { formatFileSize } from "@/lib/hash";
 import Layout from "@/components/Layout";
@@ -19,7 +20,7 @@ export default function MyTimestampsPage() {
       }
       setUser(data.user);
       fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api/my-timestamps`,
+        `${API_BASE}/my-timestamps`,
         {
           headers: {
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,

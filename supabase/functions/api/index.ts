@@ -241,7 +241,7 @@ const openApiSpec = {
       "Trusted file timestamping service. Hash files client-side (MD5, SHA-1, SHA-256, SHA-512), store HMAC-signed timestamps server-side.",
     contact: { url: "https://hashbin.net" },
   },
-  servers: [{ url: "/functions/v1/api" }],
+  servers: [{ url: "https://hashbin.net/api" }],
   paths: {
     "/stamp": {
       post: {

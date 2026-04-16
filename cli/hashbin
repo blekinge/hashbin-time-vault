@@ -20,7 +20,7 @@ import urllib.error
 
 # ── Configuration ────────────────────────────────────────────────────
 
-API_BASE = "https://hashbin.net/functions/v1/api"
+API_BASE = "https://hashbin.net/api"
 ANON_KEY = (
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
     "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBibXh5a3NjdGd3ZXp5ZXh6cnRrIiwi"
