@@ -46,7 +46,6 @@ export default function StampPage() {
         file_size: file.size,
       };
       if (includeFileName) body.file_name = file.name;
-      if (user) body.user_id = user.id;
 
       const { data, error } = await supabase.functions.invoke("sign-timestamp", {
         body,
