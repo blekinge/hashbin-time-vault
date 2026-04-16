@@ -98,11 +98,10 @@ export default function VerifyPage() {
             {results.length === 0 ? (
               <p className="text-sm text-muted-foreground">No timestamps found.</p>
             ) : (
-              results.map((r) => (
+              results.map((r: any) => (
                 <div key={r.id} className="rounded-lg border border-border p-4 text-sm space-y-1">
                   <p><span className="text-muted-foreground">Recorded at:</span> {new Date(r.created_at).toLocaleString()}</p>
                   <p><span className="text-muted-foreground">File size:</span> {formatFileSize(r.file_size)}</p>
-                  {r.file_name && <p><span className="text-muted-foreground">File name:</span> {r.file_name}</p>}
                   <p><span className="text-muted-foreground">Signature:</span> <span className="break-all font-mono text-xs">{r.server_signature}</span></p>
                 </div>
               ))
