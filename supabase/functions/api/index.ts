@@ -236,9 +236,9 @@ const openApiSpec = {
   openapi: "3.1.0",
   info: {
     title: "Hashbin API",
-    version: "1.0.0",
+    version: "2.0.0",
     description:
-      "Trusted file timestamping service. Hash files client-side, store HMAC-signed timestamps server-side.",
+      "Trusted file timestamping service. Hash files client-side (MD5, SHA-1, SHA-256, SHA-512), store HMAC-signed timestamps server-side.",
     contact: { url: "https://hashbin.net" },
   },
   servers: [{ url: "/functions/v1/api" }],
@@ -248,7 +248,7 @@ const openApiSpec = {
         operationId: "createTimestamp",
         summary: "Create a signed timestamp",
         description:
-          "Accepts a SHA-256 hash and file metadata, returns an HMAC-signed timestamp record. Rate-limited to 10 req/min per IP.",
+          "Accepts file hashes (SHA-256 required, MD5/SHA-1/SHA-512 optional) and metadata, returns an HMAC-signed timestamp record. Rate-limited to 10 req/min per IP.",
         security: [{ bearerAuth: [] }, {}],
         requestBody: {
           required: true,
@@ -284,7 +284,7 @@ const openApiSpec = {
         operationId: "verifyHash",
         summary: "Look up timestamps for a hash",
         description:
-          "Returns all timestamp records matching a given SHA-256 hash, ordered by creation time.",
+          "Returns all timestamp records matching a given hash. Auto-detects algorithm by hash length, or specify explicitly via the algorithm parameter.",
         parameters: [
           {
             name: "hash",
@@ -292,8 +292,18 @@ const openApiSpec = {
             required: true,
             schema: {
               type: "string",
-              pattern: "^[a-f0-9]{64}$",
-              description: "SHA-256 hex hash",
+              description: "Hex-encoded hash (MD5: 32 chars, SHA-1: 40, SHA-256: 64, SHA-512: 128)",
+            },
+          },
+          {
+            name: "algorithm",
+            in: "query",
+            required: false,
+            schema: {
+              type: "string",
+              enum: ["auto", "md5", "sha1", "sha-1", "sha256", "sha-256", "sha512", "sha-512"],
+              default: "auto",
+              description: "Hash algorithm. Defaults to 'auto' which detects by hash length.",
             },
           },
         ],
@@ -310,7 +320,7 @@ const openApiSpec = {
             },
           },
           "400": {
-            description: "Invalid hash",
+            description: "Invalid hash or unsupported algorithm",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/Error" },
@@ -384,7 +394,25 @@ const openApiSpec = {
           hash: {
             type: "string",
             pattern: "^[a-f0-9]{64}$",
-            description: "SHA-256 hex digest of the file",
+            description: "SHA-256 hex digest of the file (required)",
+          },
+          hash_md5: {
+            type: "string",
+            pattern: "^[a-f0-9]{32}$",
+            nullable: true,
+            description: "MD5 hex digest (optional)",
+          },
+          hash_sha1: {
+            type: "string",
+            pattern: "^[a-f0-9]{40}$",
+            nullable: true,
+            description: "SHA-1 hex digest (optional)",
+          },
+          hash_sha512: {
+            type: "string",
+            pattern: "^[a-f0-9]{128}$",
+            nullable: true,
+            description: "SHA-512 hex digest (optional)",
           },
           file_size: {
             type: "number",
@@ -403,7 +431,10 @@ const openApiSpec = {
         type: "object",
         properties: {
           id: { type: "string", format: "uuid" },
-          hash: { type: "string" },
+          hash: { type: "string", description: "SHA-256 hash" },
+          hash_md5: { type: "string", nullable: true, description: "MD5 hash" },
+          hash_sha1: { type: "string", nullable: true, description: "SHA-1 hash" },
+          hash_sha512: { type: "string", nullable: true, description: "SHA-512 hash" },
           file_size: { type: "number" },
           file_name: { type: "string", nullable: true },
           created_at: { type: "string", format: "date-time" },
@@ -415,7 +446,10 @@ const openApiSpec = {
         type: "object",
         properties: {
           id: { type: "string", format: "uuid" },
-          hash: { type: "string" },
+          hash: { type: "string", description: "SHA-256 hash" },
+          hash_md5: { type: "string", nullable: true, description: "MD5 hash" },
+          hash_sha1: { type: "string", nullable: true, description: "SHA-1 hash" },
+          hash_sha512: { type: "string", nullable: true, description: "SHA-512 hash" },
           file_size: { type: "number" },
           created_at: { type: "string", format: "date-time" },
           server_signature: { type: "string" },
