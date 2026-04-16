@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Docs from "./pages/Docs";
 import Explore from "./pages/Explore";
+import CLI from "./pages/CLI";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/docs" element={<Docs />} />
+          <Route path="/cli" element={<CLI />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
