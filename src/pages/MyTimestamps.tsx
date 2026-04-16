@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { API_BASE } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { formatFileSize } from "@/lib/hash";
 import Layout from "@/components/Layout";

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { API_BASE } from "@/lib/api";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { hashFileAll, formatFileSize } from "@/lib/hash";

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { API_BASE } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { hashFileAll, formatFileSize } from "@/lib/hash";
 import type { FileHashes } from "@/lib/hash";
