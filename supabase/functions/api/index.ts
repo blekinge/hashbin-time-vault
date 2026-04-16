@@ -155,19 +155,46 @@ app.post("/stamp", async (c) => {
   return c.json(data);
 });
 
-// ── GET /api/verify?hash=... ─────────────────────────────
+// ── GET /api/verify?hash=...&algorithm=... ───────────────
 
 app.get("/verify", async (c) => {
   const hash = c.req.query("hash");
-  if (!hash || !/^[a-f0-9]{64}$/.test(hash)) {
-    return c.json({ error: "Invalid or missing hash parameter" }, 400);
+  const algorithm = c.req.query("algorithm") || "auto";
+
+  if (!hash || typeof hash !== "string") {
+    return c.json({ error: "Missing hash parameter" }, 400);
+  }
+
+  const hexHash = hash.toLowerCase();
+
+  // Determine which column to search
+  let column: string;
+  if (algorithm === "auto") {
+    // Auto-detect by length
+    if (/^[a-f0-9]{32}$/.test(hexHash)) column = "hash_md5";
+    else if (/^[a-f0-9]{40}$/.test(hexHash)) column = "hash_sha1";
+    else if (/^[a-f0-9]{64}$/.test(hexHash)) column = "hash";
+    else if (/^[a-f0-9]{128}$/.test(hexHash)) column = "hash_sha512";
+    else return c.json({ error: "Invalid hash format" }, 400);
+  } else {
+    const algoMap: Record<string, string> = {
+      md5: "hash_md5",
+      sha1: "hash_sha1",
+      "sha-1": "hash_sha1",
+      sha256: "hash",
+      "sha-256": "hash",
+      sha512: "hash_sha512",
+      "sha-512": "hash_sha512",
+    };
+    column = algoMap[algorithm.toLowerCase()];
+    if (!column) return c.json({ error: "Unsupported algorithm" }, 400);
   }
 
   const supabase = serviceClient();
   const { data, error } = await supabase
     .from("timestamps")
-    .select("id, hash, created_at, file_size, server_signature")
-    .eq("hash", hash)
+    .select("id, hash, hash_md5, hash_sha1, hash_sha512, created_at, file_size, server_signature")
+    .eq(column, hexHash)
     .order("created_at", { ascending: true });
 
   if (error) {
