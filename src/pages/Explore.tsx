@@ -38,7 +38,15 @@ export default function ExplorePage() {
   }
 
   const filtered = search
-    ? timestamps.filter((t) => t.hash?.startsWith(search.toLowerCase()))
+    ? timestamps.filter((t) => {
+        const s = search.toLowerCase();
+        return (
+          t.hash?.startsWith(s) ||
+          t.hash_md5?.startsWith(s) ||
+          t.hash_sha1?.startsWith(s) ||
+          t.hash_sha512?.startsWith(s)
+        );
+      })
     : timestamps;
 
   return (
