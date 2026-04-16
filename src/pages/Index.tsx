@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { hashFile, formatFileSize } from "@/lib/hash";
+import { hashFileAll, formatFileSize } from "@/lib/hash";
+import type { FileHashes } from "@/lib/hash";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -10,7 +11,7 @@ import type { User } from "@supabase/supabase-js";
 
 interface FileEntry {
   file: File;
-  hash: string | null;
+  hashes: FileHashes | null;
   hashing: boolean;
   submitting: boolean;
   result: any | null;
@@ -31,7 +32,7 @@ export default function StampPage() {
   const addFiles = useCallback(async (files: File[]) => {
     const newEntries: FileEntry[] = files.map((f) => ({
       file: f,
-      hash: null,
+      hashes: null,
       hashing: true,
       submitting: false,
       result: null,
@@ -40,14 +41,13 @@ export default function StampPage() {
 
     setEntries((prev) => [...prev, ...newEntries]);
 
-    // Hash each file
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       try {
-        const h = await hashFile(file);
+        const h = await hashFileAll(file);
         setEntries((prev) =>
           prev.map((e) =>
-            e.file === file ? { ...e, hash: h, hashing: false } : e
+            e.file === file ? { ...e, hashes: h, hashing: false } : e
           )
         );
       } catch {
@@ -92,12 +92,18 @@ export default function StampPage() {
   );
 
   const stampOne = async (entry: FileEntry) => {
-    if (!entry.hash) return;
+    if (!entry.hashes) return;
     setEntries((prev) =>
       prev.map((e) => (e.file === entry.file ? { ...e, submitting: true } : e))
     );
     try {
-      const body: any = { hash: entry.hash, file_size: entry.file.size };
+      const body: any = {
+        hash: entry.hashes.sha256,
+        hash_md5: entry.hashes.md5,
+        hash_sha1: entry.hashes.sha1,
+        hash_sha512: entry.hashes.sha512,
+        file_size: entry.file.size,
+      };
       if (includeFileName) body.file_name = entry.file.name;
 
       const res = await fetch(
@@ -134,15 +140,14 @@ export default function StampPage() {
   };
 
   const stampAll = async () => {
-    const pending = entries.filter((e) => e.hash && !e.result && !e.error);
+    const pending = entries.filter((e) => e.hashes && !e.result && !e.error);
     for (const entry of pending) {
       await stampOne(entry);
     }
-    const successCount = entries.filter((e) => e.result).length + pending.length;
-    toast.success(`Timestamped ${successCount} file${successCount !== 1 ? "s" : ""}`);
+    toast.success(`Timestamped ${pending.length} file${pending.length !== 1 ? "s" : ""}`);
   };
 
-  const pendingEntries = entries.filter((e) => e.hash && !e.result && !e.error);
+  const pendingEntries = entries.filter((e) => e.hashes && !e.result && !e.error);
   const allDone = entries.length > 0 && entries.every((e) => e.result || e.error);
 
   return (
@@ -151,11 +156,10 @@ export default function StampPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Timestamp files</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Hash your files locally, then store signed timestamps proving they existed at this moment.
+            Hash your files locally (MD5, SHA-1, SHA-256, SHA-512), then store signed timestamps.
           </p>
         </div>
 
-        {/* Drop zone */}
         <label
           ref={dropRef}
           onDragOver={onDragOver}
@@ -217,11 +221,20 @@ export default function StampPage() {
                     <p className="text-xs text-muted-foreground">Hashing…</p>
                   )}
 
-                  {entry.hash && !entry.result && !entry.error && (
+                  {entry.hashes && !entry.result && !entry.error && (
                     <>
-                      <p className="break-all font-mono text-xs text-muted-foreground">
-                        {entry.hash}
-                      </p>
+                      <div className="space-y-1">
+                        {(["sha256", "sha512", "sha1", "md5"] as const).map((alg) => (
+                          <p key={alg} className="text-xs">
+                            <span className="text-muted-foreground uppercase font-medium w-14 inline-block">
+                              {alg === "sha256" ? "SHA-256" : alg === "sha512" ? "SHA-512" : alg === "sha1" ? "SHA-1" : "MD5"}
+                            </span>{" "}
+                            <span className="break-all font-mono text-muted-foreground">
+                              {entry.hashes![alg]}
+                            </span>
+                          </p>
+                        ))}
+                      </div>
                       <Button
                         size="sm"
                         onClick={() => stampOne(entry)}
