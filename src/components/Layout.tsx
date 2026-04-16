@@ -19,6 +19,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const nav = [
     { to: "/", label: "Stamp" },
     { to: "/verify", label: "Verify" },
+    { to: "/docs", label: "API Docs" },
   ];
 
   if (user) {
