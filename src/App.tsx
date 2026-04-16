@@ -8,6 +8,7 @@ import Verify from "./pages/Verify";
 import MyTimestamps from "./pages/MyTimestamps";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import Docs from "./pages/Docs";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/verify" element={<Verify />} />
           <Route path="/my-timestamps" element={<MyTimestamps />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/docs" element={<Docs />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
