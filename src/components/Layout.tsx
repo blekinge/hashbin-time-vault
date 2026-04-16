@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { Github } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -55,7 +56,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               className="text-sm text-muted-foreground transition-colors hover:text-foreground"
               title="View source on GitHub"
             >
-              GitHub
+              <Github size={18} />
             </a>
             {user ? (
               <Button
