@@ -235,7 +235,7 @@ export default function StampPage() {
 
                   {entry.result && (
                     <div className="space-y-1 text-xs">
-                      <p className="text-green-600 dark:text-green-400 font-medium">
+                      <p className="font-medium text-primary">
                         ✓ Timestamped at{" "}
                         {new Date(entry.result.created_at).toLocaleString()}
                       </p>
