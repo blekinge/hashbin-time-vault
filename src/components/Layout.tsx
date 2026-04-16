@@ -21,6 +21,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { to: "/verify", label: "Verify" },
     { to: "/explore", label: "Explore" },
     { to: "/docs", label: "API Docs" },
+    { to: "/cli", label: "CLI" },
   ];
 
   if (user) {
