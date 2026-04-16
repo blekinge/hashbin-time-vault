@@ -87,11 +87,22 @@ app.post("/stamp", async (c) => {
   const body = await c.req.json().catch(() => null);
   if (!body) return c.json({ error: "Invalid JSON body" }, 400);
 
-  const { hash, file_size, file_name } = body;
+  const { hash, hash_md5, hash_sha1, hash_sha512, file_size, file_name } = body;
 
-  // Validate hash
+  // Validate hash (SHA-256, required)
   if (!hash || typeof hash !== "string" || !/^[a-f0-9]{64}$/.test(hash)) {
     return c.json({ error: "Invalid SHA-256 hash" }, 400);
+  }
+
+  // Validate optional hashes
+  if (hash_md5 != null && (typeof hash_md5 !== "string" || !/^[a-f0-9]{32}$/.test(hash_md5))) {
+    return c.json({ error: "Invalid MD5 hash" }, 400);
+  }
+  if (hash_sha1 != null && (typeof hash_sha1 !== "string" || !/^[a-f0-9]{40}$/.test(hash_sha1))) {
+    return c.json({ error: "Invalid SHA-1 hash" }, 400);
+  }
+  if (hash_sha512 != null && (typeof hash_sha512 !== "string" || !/^[a-f0-9]{128}$/.test(hash_sha512))) {
+    return c.json({ error: "Invalid SHA-512 hash" }, 400);
   }
 
   // Validate file_size
@@ -125,6 +136,9 @@ app.post("/stamp", async (c) => {
     .from("timestamps")
     .insert({
       hash,
+      hash_md5: hash_md5 || null,
+      hash_sha1: hash_sha1 || null,
+      hash_sha512: hash_sha512 || null,
       file_size,
       file_name: file_name || null,
       created_at,
